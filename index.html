@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TaskDesk — заявки и статусы</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#E9EDF2; --surface:#FFFFFF; --surface-2:#F3F5F8; --ink:#15202B; --muted:#566373; --line:#D3DAE3;
+  --brand:#2343D6; --brand-ink:#FFFFFF;
+  --new:#A65F00; --new-tint:#FFF0D2; --work:#1D58C4; --work-tint:#E0EAFF; --done:#1F7245; --done-tint:#DCF2E4;
+  --danger:#BA2D26; --danger-tint:#FDE7E5; --mark:#FFE07A;
+  --display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#10161D; --surface:#1A222C; --surface-2:#222C38; --ink:#E8EDF3; --muted:#9BA8B7; --line:#303C4A;
+    --brand:#8499FF; --brand-ink:#0D1220;
+    --new:#F0B04A; --new-tint:#3A2C10; --work:#86ACFF; --work-tint:#16284A; --done:#6FD097; --done-tint:#143122;
+    --danger:#FF8279; --danger-tint:#3B1715; --mark:#6B5410;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#10161D; --surface:#1A222C; --surface-2:#222C38; --ink:#E8EDF3; --muted:#9BA8B7; --line:#303C4A;
+  --brand:#8499FF; --brand-ink:#0D1220;
+  --new:#F0B04A; --new-tint:#3A2C10; --work:#86ACFF; --work-tint:#16284A; --done:#6FD097; --done-tint:#143122;
+  --danger:#FF8279; --danger-tint:#3B1715; --mark:#6B5410;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.2;margin:0}
+h1{font-size:1.55rem;letter-spacing:-.01em}
+h2{font-size:1.05rem}
+h3{font-size:.9rem;font-weight:500}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+
+/* шапка */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:1.05rem;text-decoration:none;color:var(--ink)}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);display:grid;place-items:center}
+.logo-mark svg{width:18px;height:18px;stroke:var(--brand-ink)}
+.nav{display:flex;gap:2px;margin-left:auto}
+.nav a{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;text-decoration:none;color:var(--muted);font-weight:500;font-size:.92rem}
+.nav a svg{width:18px;height:18px;flex:none}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+.nav a[aria-current="page"]{background:var(--brand);color:var(--brand-ink)}
+
+main{max-width:1120px;margin:0 auto;padding:22px 16px 40px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.head p{color:var(--muted);max-width:60ch;margin-top:6px}
+
+/* кнопки и поля */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid transparent;background:var(--brand);color:var(--brand-ink);font-weight:600;cursor:pointer;text-decoration:none;transition:transform .08s,filter .15s}
+.btn:hover{filter:brightness(1.1)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.small{min-height:36px;padding:0 12px;font-size:.88rem;border-radius:10px}
+.btn.danger{background:var(--danger-tint);color:var(--danger);border-color:transparent}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label,.legend{font-weight:600;font-size:.92rem}
+.field .hint{color:var(--muted);font-size:.84rem}
+input[type=text],input[type=url],input[type=search],input[type=number],input[type=date],select,textarea{width:100%;min-height:44px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+textarea{min-height:110px;resize:vertical}
+.field.bad input,.field.bad select,.field.bad textarea{border-color:var(--danger);background:var(--danger-tint)}
+.err{color:var(--danger);font-size:.86rem;font-weight:500;min-height:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.row2{display:grid;gap:0 14px}
+
+/* фильтры */
+.tools{display:grid;gap:10px;margin-bottom:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:500;font-size:.92rem;display:inline-flex;align-items:center;gap:7px}
+.chip b{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] b{color:inherit;opacity:.75}
+.tools-row{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.tools-row .q{grid-column:1/-1}
+.tools-row .btn{width:100%}
+.count{color:var(--muted);font-size:.9rem;margin-bottom:10px}
+
+/* заявка-талон */
+.list{display:grid;gap:12px;grid-template-columns:1fr}
+.ticket{position:relative;display:grid;grid-template-columns:78px 1fr;background:var(--surface);border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.ticket[data-status="new"]{--st:var(--new);--st-tint:var(--new-tint)}
+.ticket[data-status="work"]{--st:var(--work);--st-tint:var(--work-tint)}
+.ticket[data-status="done"]{--st:var(--done);--st-tint:var(--done-tint)}
+.stub{background:var(--st-tint);color:var(--st);border-right:2px dashed var(--line);padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.stub .td{font-size:.72rem;font-weight:600;opacity:.8}
+.stub .num{font-family:var(--display);font-weight:700;font-size:1.1rem;font-variant-numeric:tabular-nums}
+.stub .st{margin-top:auto;font-size:.72rem;font-weight:600;line-height:1.2}
+.ticket::before,.ticket::after{content:"";position:absolute;left:69px;width:18px;height:18px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.ticket::before{top:-10px}.ticket::after{bottom:-10px}
+.body{padding:14px 14px 12px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.body h2{font-family:var(--body);font-size:1.02rem;font-weight:600;overflow-wrap:anywhere}
+.desc{color:var(--muted);font-size:.92rem;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;flex-wrap:wrap;gap:6px;font-size:.8rem}
+.tag{padding:2px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
+.tag.p-high{background:var(--danger-tint);color:var(--danger);border-color:transparent;font-weight:600}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-height:38px;border:0;background:var(--surface);cursor:pointer;font-size:.84rem;font-weight:500;padding:0 4px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--st);color:var(--surface);font-weight:600}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.acts select{min-height:36px;padding:4px 8px;font-size:.88rem;flex:1 1 100%;width:auto}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:32px 18px;text-align:center;color:var(--muted)}
+.empty .btn{margin-top:14px}
+
+/* аналитика */
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;border-left:5px solid var(--c,var(--line))}
+.tile .v{font-family:var(--display);font-weight:700;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.tile .l{color:var(--muted);font-size:.86rem}
+.bars{display:grid;gap:10px;margin-top:12px}
+.bar{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:.92rem}
+.bar .track{grid-column:1/-1;height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bar .fill{height:100%;border-radius:6px;background:var(--c,var(--brand));transition:width .4s}
+.bar b{font-variant-numeric:tabular-nums}
+.grid2{display:grid;gap:14px}
+.note{color:var(--muted);font-size:.9rem;margin-top:12px}
+.warn{background:var(--new-tint);color:var(--new);border-radius:10px;padding:10px 12px;font-size:.9rem;font-weight:500}
+
+/* оценки */
+.stars{display:flex;gap:6px}
+.stars button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:700}
+.stars button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.review{border-top:1px solid var(--line);padding:12px 0}
+.review:first-child{border-top:0}
+.review .who{font-weight:600}
+.review .when{color:var(--muted);font-size:.84rem}
+
+/* QR */
+.qr-out{display:grid;justify-items:center;gap:12px;text-align:center}
+.qr-out img{width:min(260px,100%);height:auto;border-radius:12px;border:10px solid #fff;background:#fff;image-rendering:pixelated}
+.qr-ph{width:min(260px,100%);aspect-ratio:1;border-radius:12px;border:2px dashed var(--line);display:grid;place-items:center;color:var(--muted);padding:20px;font-size:.92rem}
+pre.payload{margin:0;padding:12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font:inherit;font-size:.88rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto}
+.radio{display:grid;gap:6px;margin-bottom:14px}
+.radio label{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--surface)}
+.radio input{accent-color:var(--brand);width:18px;height:18px}
+.radio label:has(input:checked){border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+
+/* акт (документ) */
+.paper-wrap{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:12px;overflow:auto}
+.paper{background:#fff;color:#14181F;font:13px/1.45 var(--body);padding:26px 28px;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.14)}
+.paper.print{box-shadow:none;border-radius:0;padding:4px 6px;width:718px}
+.p-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:2px solid #2343D6;padding-bottom:10px}
+.p-logo{font-family:var(--display);font-weight:700;font-size:18px;color:#2343D6}
+.p-sub{font-size:11px;color:#566373}
+.p-qr{text-align:center;font-size:9px;color:#566373}
+.p-qr img{width:78px;height:78px;image-rendering:pixelated;display:block}
+.paper .p-title{font-family:var(--display);font-weight:700;font-size:15px;text-align:center;margin:16px 0 4px;line-height:1.4;color:#14181F}
+.p-date{text-align:center;color:#566373;font-size:12px;margin-bottom:12px}
+.p-tab{width:100%;border-collapse:collapse;font-size:12.5px}
+.p-tab th,.p-tab td{border:1px solid #C9D1DC;padding:5px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.p-tab th{background:#F1F4F8;width:38%;font-weight:600}
+.paper .p-h{font-family:var(--body);font-weight:700;font-size:13px;margin:14px 0 4px;color:#14181F}
+.p-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.p-empty{color:#98A2AF}
+.p-sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px;font-size:12px}
+.p-line{border-bottom:1px solid #14181F;height:26px;margin:2px 0 4px}
+.p-foot{margin-top:20px;font-size:10.5px;color:#7A8594;border-top:1px solid #E1E6EC;padding-top:6px}
+
+/* о проекте */
+.prose p+p{margin-top:10px}
+.prose ul,.prose ol{margin:8px 0 0;padding-left:20px}
+.prose li+li{margin-top:4px}
+.lead{font-size:1.1rem;font-weight:500;max-width:52ch}
+
+/* уведомления */
+.toasts{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);z-index:20;display:grid;justify-items:center;gap:8px;pointer-events:none;padding:0 12px}
+.toast{background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:500;font-size:.94rem;max-width:480px;border-left:5px solid var(--done);animation:pop .2s ease-out}
+.toast.bad{border-left-color:var(--danger)}
+@keyframes pop{from{transform:translateY(8px);opacity:0}}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* телефон: навигация внизу */
+@media (max-width:899px){
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:9;margin:0;gap:0;background:var(--surface);border-top:1px solid var(--line);padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px))}
+  .nav a{flex:1;flex-direction:column;gap:2px;padding:6px 1px;font-size:.62rem;border-radius:8px;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .nav a svg{width:21px;height:21px}
+  .nav a[aria-current="page"]{background:transparent;color:var(--brand);font-weight:700}
+  main{padding-bottom:96px}
+  .toasts{bottom:calc(env(safe-area-inset-bottom,0px) + 76px)}
+}
+@media (min-width:640px){
+  .row2{grid-template-columns:1fr 1fr}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .acts select{flex:1 1 140px}
+}
+@media (min-width:900px){
+  h1{font-size:1.9rem}
+  .list{grid-template-columns:1fr 1fr}
+  .grid2{grid-template-columns:1fr 1fr;align-items:start}
+  .tools-row{grid-template-columns:2fr 1fr 1fr 1fr auto}
+  .tools-row .q{grid-column:auto}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="#tickets">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      TaskDesk
+    </a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#tickets" data-v="tickets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Заявки</a>
+      <a href="#new" data-v="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Создать</a>
+      <a href="#analytics" data-v="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Аналитика</a>
+      <a href="#act" data-v="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Акт PDF</a>
+      <a href="#qr" data-v="qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM18 14h2M14 18v2"/></svg>QR-код</a>
+      <a href="#feedback" data-v="feedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>Отзывы</a>
+      <a href="#about" data-v="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></svg>О проекте</a>
+    </nav>
+  </div>
+</header>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<main id="main" tabindex="-1"></main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script>
+(function(){
+'use strict';
+var SITE_URL='https://sites.google.com/turan-edu.kz/taskdesk/%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F';
+var KEY='taskdesk.v1';
+var TYPES=['Доступ и пароли','Ошибка в приложении','Сайт не открывается','Оборудование','Другое'];
+var PRIOS={high:'Высокий',mid:'Средний',low:'Низкий'};
+var STATUS={new:'Новая',work:'В работе',done:'Готово'};
+var PEOPLE=['Не назначен','Айдана К.','Тимур С.','Данияр М.'];
+var RESULTS=['Проблема устранена полностью','Проблема устранена частично','Требуется замена оборудования','Передано другому специалисту'];
+var VIEWS=['tickets','new','analytics','act','qr','feedback','about'];
+var NAME_RE=/^[A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі][A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі .\-]*$/;
+var LETTER_RE=/[A-Za-zА-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі]/;
+var main=document.getElementById('main');
+
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pad(n){return ('0'+n).slice(-2)}
+function fmtDate(iso){var d=new Date(iso);return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()}
+function dayISO(d){d=d?new Date(d):new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function fmtDay(s){return s?s.split('-').reverse().join('.'):''}
+function plural(n,a,b,c){var m=n%100,k=n%10;return (m>10&&m<20)?c:k===1?a:(k>=2&&k<=4)?b:c}
+/* подсветка найденного текста */
+function hl(s,q){
+  s=String(s);if(!q)return esc(s);
+  var low=s.toLowerCase(),out='',i=0,j;
+  while((j=low.indexOf(q,i))>=0){out+=esc(s.slice(i,j))+'<mark>'+esc(s.slice(j,j+q.length))+'</mark>';i=j+q.length}
+  return out+esc(s.slice(i));
+}
+
+/* ---------- данные ---------- */
+function seed(){
+  var T=function(id,title,desc,type,prio,status,author,assignee,date){return {id:id,title:title,desc:desc,type:type,priority:prio,status:status,author:author,assignee:assignee,created:date}};
+  return {nextId:1008,tickets:[
+    T(1007,'Не приходит письмо для сброса пароля','Нажимаю «Забыли пароль», письмо не приходит ни во входящие, ни в спам. Пробовал три раза.',TYPES[0],'high','new','Алия Н.','Не назначен','2026-11-14T09:20:00'),
+    T(1006,'Кнопка «Сохранить» не реагирует в форме профиля','В Chrome на ноутбуке кнопка нажимается, но данные не сохраняются и сообщения нет.',TYPES[1],'mid','work','Руслан Б.','Тимур С.','2026-11-13T15:05:00'),
+    T(1005,'Сайт группы не открывается с телефона','На мобильном интернете страница грузится бесконечно, через Wi-Fi работает.',TYPES[2],'high','work','Мадина О.','Айдана К.','2026-11-12T11:40:00'),
+    T(1004,'Проектор в аудитории 214 не видит ноутбук','При подключении по HDMI на экране надпись «Нет сигнала». Кабель меняли.',TYPES[3],'mid','new','Ержан Т.','Не назначен','2026-11-12T08:15:00'),
+    T(1003,'Нужен доступ к общей папке проекта','Прошу открыть доступ на редактирование к папке с макетами для двух новых участников.',TYPES[0],'low','done','Диана С.','Данияр М.','2026-11-10T13:30:00'),
+    T(1002,'Ошибка 500 при загрузке файла больше 10 МБ','При отправке отчёта в PDF появляется страница с ошибкой сервера.',TYPES[1],'high','done','Арман К.','Тимур С.','2026-11-09T17:45:00'),
+    T(1001,'Добавить тёмную тему в личный кабинет','Вечером интерфейс слишком яркий, хотелось бы переключатель темы.',TYPES[4],'low','new','Сабина Р.','Не назначен','2026-11-08T10:00:00')
+  ],reviews:[
+    {name:'Тестовый пользователь',rating:5,best:'Статусы заявок',text:'Сразу видно, что с заявкой и кто её делает.',date:'2026-11-13T12:00:00'}
+  ],acts:{}};
+}
+var state;
+/* Исправление: раньше при отсутствии массива отзывов терялись все заявки, а nextId мог совпасть с существующим номером */
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){
+      var s=JSON.parse(raw);
+      if(s&&Array.isArray(s.tickets)){
+        if(!Array.isArray(s.reviews))s.reviews=[];
+        if(!s.acts||typeof s.acts!=='object')s.acts={};
+        var mx=s.tickets.reduce(function(m,t){return Math.max(m,+t.id||0)},1000);
+        if(!(s.nextId>mx))s.nextId=mx+1;
+        return s;
+      }
+    }
+  }catch(e){}
+  return seed();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast('Не удалось сохранить данные в браузере',true)}}
+state=load();
+
+var DEF={status:'all',priority:'all',type:'all',sort:'new',q:''};
+var ui={status:'all',priority:'all',type:'all',sort:'new',q:'',confirmDel:null,confirmReset:false,
+  qrSource:'ticket',qrTicket:null,qrUrl:SITE_URL,qrText:'',qrReady:null,qrAuto:false,rating:0,actTicket:null};
+
+/* ---------- уведомления ---------- */
+function toast(msg,bad){
+  var el=document.createElement('div');el.className='toast'+(bad?' bad':'');el.textContent=msg;
+  var box=$('#toasts');while(box.children.length>1)box.firstChild.remove();box.appendChild(el);setTimeout(function(){el.remove()},3400);
+}
+
+/* ---------- маршруты ---------- */
+function route(){
+  var h=location.hash.replace('#',''),m=/^edit-(\d+)$/.exec(h);
+  if(m)return {v:'edit',id:+m[1]};
+  return {v:VIEWS.indexOf(h)>=0?h:'tickets'};
+}
+function current(){return route().v}
+function go(v){if(location.hash.replace('#','')===v)render();else location.hash=v}
+function render(){
+  var r=route(),nav=r.v==='edit'?'tickets':r.v;
+  document.querySelectorAll('.nav a').forEach(function(a){if(a.dataset.v===nav)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(r.v==='edit'){viewForm(r.id);return}
+  ({tickets:viewTickets,new:function(){viewForm(null)},analytics:viewAnalytics,act:viewAct,qr:viewQr,feedback:viewFeedback,about:viewAbout})[r.v]();
+}
+window.addEventListener('hashchange',function(){render();window.scrollTo(0,0)});
+
+/* ---------- заявки: поиск, фильтры, сортировка ---------- */
+function counts(){var c={all:state.tickets.length,new:0,work:0,done:0};state.tickets.forEach(function(t){c[t.status]++});return c}
+function viewTickets(){
+  main.innerHTML=
+  '<div class="head"><div><h1>Заявки</h1><p>Все обращения в одном месте: ищите по тексту, фильтруйте, сортируйте, меняйте статус и редактируйте заявки.</p></div>'+
+  '<a class="btn" href="#new">Создать заявку</a></div>'+
+  '<div class="tools"><div class="chips" id="chips" role="group" aria-label="Фильтр по статусу"></div>'+
+  '<div class="tools-row">'+
+    '<div class="q"><label class="sr" for="q">Поиск по заявкам</label><input type="search" id="q" placeholder="Поиск: тема, описание, автор или номер" value="'+esc(ui.q)+'" autocomplete="off"></div>'+
+    '<div><label class="sr" for="ft">Тип проблемы</label><select id="ft"><option value="all">Любой тип</option>'+TYPES.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select></div>'+
+    '<div><label class="sr" for="fp">Приоритет</label><select id="fp"><option value="all">Любой приоритет</option><option value="high">Высокий</option><option value="mid">Средний</option><option value="low">Низкий</option></select></div>'+
+    '<div><label class="sr" for="fs">Сортировка</label><select id="fs">'+
+      '<option value="new">Сначала новые</option><option value="old">Сначала старые</option><option value="prio">Сначала срочные</option>'+
+      '<option value="az">Тема: от А до Я</option><option value="za">Тема: от Я до А</option></select></div>'+
+    '<div><button class="btn ghost" data-act="reset-filters" id="reset">Сбросить</button></div>'+
+  '</div></div><p class="count" id="count" aria-live="polite"></p><div class="list" id="list"></div>';
+  $('#ft').value=ui.type;$('#fp').value=ui.priority;$('#fs').value=ui.sort;
+  $('#q').addEventListener('input',function(e){ui.q=e.target.value;drawList()});
+  $('#ft').addEventListener('change',function(e){ui.type=e.target.value;drawList()});
+  $('#fp').addEventListener('change',function(e){ui.priority=e.target.value;drawList()});
+  $('#fs').addEventListener('change',function(e){ui.sort=e.target.value;drawList()});
+  drawList();
+}
+function filtered(){
+  var q=ui.q.trim().toLowerCase();
+  var list=state.tickets.filter(function(t){
+    return (ui.status==='all'||t.status===ui.status)&&(ui.priority==='all'||t.priority===ui.priority)&&(ui.type==='all'||t.type===ui.type)&&
+      (!q||(t.title+' '+t.desc+' '+t.author+' '+t.type+' td-'+t.id+' '+t.id).toLowerCase().indexOf(q)>=0)});
+  var rank={high:0,mid:1,low:2};
+  list.sort(function(a,b){
+    if(ui.sort==='az')return a.title.localeCompare(b.title,'ru');
+    if(ui.sort==='za')return b.title.localeCompare(a.title,'ru');
+    if(ui.sort==='prio'&&rank[a.priority]!==rank[b.priority])return rank[a.priority]-rank[b.priority];
+    return ui.sort==='old'?a.id-b.id:b.id-a.id});
+  return {list:list,q:q};
+}
+function isDefault(){return Object.keys(DEF).every(function(k){return ui[k]===DEF[k]})}
+function drawList(){
+  var c=counts(),chips=$('#chips');if(!chips)return;
+  chips.innerHTML=[['all','Все'],['new','Новые'],['work','В работе'],['done','Готово']].map(function(x){
+    return '<button class="chip" data-act="fstatus" data-v="'+x[0]+'" aria-pressed="'+(ui.status===x[0])+'">'+x[1]+' <b>'+c[x[0]]+'</b></button>'}).join('');
+  var r=filtered(),list=r.list;
+  $('#count').textContent='Показано '+list.length+' из '+state.tickets.length+(isDefault()?'':' · применены условия поиска');
+  $('#reset').disabled=isDefault();
+  var box=$('#list');
+  if(!state.tickets.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">Заявок пока нет. Создайте первую, и она появится здесь.<br><a class="btn" href="#new">Создать заявку</a></div>';return}
+  if(!list.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">По этим условиям ничего не найдено. Измените запрос или сбросьте параметры.<br><button class="btn ghost" data-act="reset-filters">Сбросить параметры</button></div>';return}
+  box.innerHTML=list.map(function(t){return card(t,r.q)}).join('');
+}
+function card(t,q){
+  var seg=Object.keys(STATUS).map(function(s){return '<button data-act="status" data-id="'+t.id+'" data-v="'+s+'" aria-pressed="'+(t.status===s)+'">'+STATUS[s]+'</button>'}).join('');
+  var ppl=PEOPLE.map(function(p){return '<option'+(p===t.assignee?' selected':'')+'>'+esc(p)+'</option>'}).join('');
+  var del=ui.confirmDel===t.id?'<button class="btn small danger" data-act="del-yes" data-id="'+t.id+'">Точно удалить?</button>':'<button class="btn small ghost" data-act="del" data-id="'+t.id+'">Удалить</button>';
+  return '<article class="ticket" data-status="'+t.status+'">'+
+    '<div class="stub"><span class="td">TD</span><span class="num">'+hl(t.id,q)+'</span><span class="st">'+STATUS[t.status]+'</span></div>'+
+    '<div class="body"><h2>'+hl(t.title,q)+'</h2><p class="desc">'+hl(t.desc,q)+'</p>'+
+    '<div class="meta"><span class="tag p-'+t.priority+'">Приоритет: '+PRIOS[t.priority].toLowerCase()+'</span><span class="tag">'+hl(t.type,q)+'</span><span class="tag">'+hl(t.author,q)+'</span><span class="tag">'+fmtDate(t.created)+'</span>'+
+      (t.updated?'<span class="tag">изменена '+fmtDate(t.updated)+'</span>':'')+'</div>'+
+    '<div class="seg" role="group" aria-label="Статус заявки TD-'+t.id+'">'+seg+'</div>'+
+    '<div class="acts"><label class="sr" for="as'+t.id+'">Исполнитель</label><select id="as'+t.id+'" data-act="assign" data-id="'+t.id+'">'+ppl+'</select>'+
+    '<a class="btn small ghost" href="#edit-'+t.id+'">Изменить</a>'+
+    '<button class="btn small ghost" data-act="qr" data-id="'+t.id+'">QR-код</button>'+
+    '<button class="btn small ghost" data-act="act" data-id="'+t.id+'">Акт</button>'+del+'</div></div></article>';
+}
+function find(id){return state.tickets.filter(function(t){return t.id===+id})[0]}
+
+/* ---------- создание и редактирование заявки ---------- */
+function viewForm(editId){
+  var t=editId!==null?find(editId):null;
+  if(editId!==null&&!t){toast('Заявка TD-'+editId+' не найдена',true);location.hash='tickets';return}
+  main.innerHTML=
+  '<div class="head"><div><h1>'+(t?'Изменить заявку TD-'+t.id:'Новая заявка')+'</h1><p>'+(t?'Исправьте данные заявки. Статус и исполнитель меняются прямо в карточке.':'Опишите проблему. Заявка сразу появится в общем списке со статусом «Новая».')+'</p></div></div>'+
+  '<form class="panel" id="f" novalidate style="max-width:680px">'+
+    field('title','Тема','<input type="text" id="title" maxlength="90" placeholder="Например: не открывается личный кабинет">','От 5 до 90 символов, должна содержать буквы')+
+    field('desc','Описание','<textarea id="desc" maxlength="600" placeholder="Что случилось, где и что вы уже пробовали"></textarea>','От 10 символов')+
+    '<div class="row2">'+
+    field('type','Тип проблемы','<select id="type"><option value="">Выберите тип</option>'+TYPES.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select>')+
+    field('prio','Приоритет','<select id="prio"><option value="">Выберите приоритет</option><option value="high">Высокий</option><option value="mid">Средний</option><option value="low">Низкий</option></select>')+
+    '</div>'+
+    field('author','Ваше имя','<input type="text" id="author" maxlength="40" placeholder="Например: Алия Н.">','Только буквы, пробел, точка или дефис')+
+    '<div class="btns"><button class="btn" type="submit">'+(t?'Сохранить изменения':'Создать заявку')+'</button>'+
+    (t?'<a class="btn ghost" href="#tickets">Отмена</a>':'')+'</div></form>';
+  if(t){$('#title').value=t.title;$('#desc').value=t.desc;$('#type').value=t.type;$('#prio').value=t.priority;$('#author').value=t.author}
+  $('#f').addEventListener('submit',function(e){
+    e.preventDefault();
+    var v={title:$('#title').value.trim().replace(/\s+/g,' '),desc:$('#desc').value.trim(),type:$('#type').value,prio:$('#prio').value,author:$('#author').value.trim().replace(/\s+/g,' ')};
+    var dup=state.tickets.filter(function(x){return x.status!=='done'&&(!t||x.id!==t.id)&&x.title.toLowerCase()===v.title.toLowerCase()})[0];
+    var errs={
+      title:v.title.length<5?'Введите тему не короче 5 символов':!LETTER_RE.test(v.title)?'Тема должна содержать буквы, а не только цифры и знаки':dup?'Такая открытая заявка уже есть: TD-'+dup.id:'',
+      desc:v.desc.length<10?'Опишите проблему подробнее: минимум 10 символов':'',
+      type:!v.type?'Выберите тип проблемы':'',
+      prio:!v.prio?'Выберите приоритет':'',
+      author:v.author.length<2?'Укажите имя, чтобы исполнитель знал, кому отвечать':!NAME_RE.test(v.author)?'Имя может содержать только буквы, пробел, точку и дефис':''};
+    if(showErrors(errs)){toast((t?'Изменения не сохранены':'Заявка не создана')+': исправьте отмеченные поля',true);return}
+    if(t){
+      t.title=v.title;t.desc=v.desc;t.type=v.type;t.priority=v.prio;t.author=v.author;t.updated=new Date().toISOString();
+      save();toast('Заявка TD-'+t.id+' изменена');location.hash='tickets';return;
+    }
+    var id=state.nextId++;
+    state.tickets.push({id:id,title:v.title,desc:v.desc,type:v.type,priority:v.prio,status:'new',author:v.author,assignee:'Не назначен',created:new Date().toISOString()});
+    save();Object.keys(DEF).forEach(function(k){ui[k]=DEF[k]});
+    toast('Заявка TD-'+id+' создана');go('tickets');
+  });
+}
+function field(id,label,control,hint){
+  return '<div class="field" id="w-'+id+'"><label for="'+id+'">'+label+'</label>'+control+(hint?'<span class="hint">'+hint+'</span>':'')+'<span class="err" id="e-'+id+'"></span></div>';
+}
+/* Исправление: фокус переводится на первый элемент, который может его принять (раньше фокус уходил в блок звёзд и терялся) */
+function showErrors(errs){
+  var first=null;
+  Object.keys(errs).forEach(function(k){
+    var w=$('#w-'+k),e=$('#e-'+k);if(!w)return;
+    w.classList.toggle('bad',!!errs[k]);e.textContent=errs[k];
+    var c=$('#'+k);if(c){if(errs[k])c.setAttribute('aria-invalid','true');else c.removeAttribute('aria-invalid')}
+    if(errs[k]&&!first&&c)first=c.matches('input,select,textarea,button')?c:c.querySelector('button,input,select,textarea');
+  });
+  if(first)first.focus();
+  return !!first;
+}
+
+/* ---------- аналитика ---------- */
+function viewAnalytics(){
+  var c=counts(),total=c.all,pct=total?Math.round(c.done/total*100):0;
+  var byType=TYPES.map(function(x){return [x,state.tickets.filter(function(t){return t.type===x}).length]}).sort(function(a,b){return b[1]-a[1]});
+  var byPrio=['high','mid','low'].map(function(p){return [PRIOS[p],state.tickets.filter(function(t){return t.priority===p}).length,p]});
+  var maxT=Math.max.apply(null,byType.map(function(x){return x[1]}).concat([1]));
+  var maxP=Math.max.apply(null,byPrio.map(function(x){return x[1]}).concat([1]));
+  var open=state.tickets.filter(function(t){return t.status!=='done'&&t.priority==='high'}).length;
+  var top=byType[0];
+  var insight=!total?'Данных пока нет: создайте заявки, и графики построятся автоматически.':
+    'Чаще всего обращаются по теме «'+top[0]+'» ('+top[1]+' из '+total+'). '+
+    (open?'Срочных заявок в очереди: '+open+'. Их стоит взять в работу первыми.':'Срочных незакрытых заявок нет.');
+  main.innerHTML=
+  '<div class="head"><div><h1>Аналитика</h1><p>Цифры считаются по текущему списку заявок и обновляются после каждого изменения.</p></div></div>'+
+  '<div class="tiles">'+
+    tile(total,'Всего заявок','var(--ink)')+tile(c.new,'Новые','var(--new)')+tile(c.work,'В работе','var(--work)')+tile(c.done,'Готово, '+pct+'%','var(--done)')+
+  '</div><div class="grid2">'+
+  '<section class="panel"><h2>Заявки по типам</h2><div class="bars">'+byType.map(function(x){return bar(x[0],x[1],maxT,'var(--brand)')}).join('')+'</div></section>'+
+  '<section class="panel"><h2>Заявки по приоритету</h2><div class="bars">'+byPrio.map(function(x){return bar(x[0],x[1],maxP,x[2]==='high'?'var(--danger)':x[2]==='mid'?'var(--new)':'var(--done)')}).join('')+'</div>'+
+  '<p class="note">'+esc(insight)+'</p></section></div>';
+}
+function tile(v,l,c){return '<div class="tile" style="--c:'+c+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'}
+function bar(l,n,max,c){return '<div class="bar" style="--c:'+c+'"><span>'+esc(l)+'</span><b>'+n+'</b><div class="track"><div class="fill" style="width:'+(n/max*100)+'%"></div></div></div>'}
+
+/* ---------- QR ---------- */
+function ticketPayload(t){
+  return 'TaskDesk, заявка TD-'+t.id+'\nТема: '+t.title+'\nТип: '+t.type+'\nПриоритет: '+PRIOS[t.priority]+'\nСтатус: '+STATUS[t.status]+'\nИсполнитель: '+t.assignee+'\nАвтор: '+t.author+'\nСоздана: '+fmtDate(t.created);
+}
+function makeQr(text,px){
+  qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+  var qr=qrcode(0,'M');qr.addData(text,'Byte');qr.make();
+  var n=qr.getModuleCount(),quiet=4,scale=Math.max(2,Math.floor(px/(n+quiet*2)));
+  var cv=document.createElement('canvas');cv.width=cv.height=(n+quiet*2)*scale;
+  var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.fillStyle='#000';
+  for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(qr.isDark(r,c))cx.fillRect((c+quiet)*scale,(r+quiet)*scale,scale,scale);
+  return cv;
+}
+function qrPayload(){
+  if(ui.qrSource==='ticket'){var t=find(ui.qrTicket);return t?{text:ticketPayload(t),name:'taskdesk-TD-'+t.id}:{error:'Выберите заявку из списка'}}
+  if(ui.qrSource==='url'){
+    var u=ui.qrUrl.trim();
+    if(!u)return {error:'Введите ссылку'};
+    if(!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(u))return {error:'Ссылка должна начинаться с http:// или https:// и не содержать пробелов'};
+    return {text:u,name:'taskdesk-link'}}
+  var x=ui.qrText.trim();
+  if(!x)return {error:'Введите текст для QR-кода'};
+  if(x.length>500)return {error:'Слишком длинный текст: максимум 500 символов, сейчас '+x.length};
+  return {text:x,name:'taskdesk-text'};
+}
+function viewQr(){
+  if(ui.qrTicket===null||!find(ui.qrTicket))ui.qrTicket=state.tickets.length?state.tickets.slice().sort(function(a,b){return b.id-a.id})[0].id:null;
+  var opts=state.tickets.slice().sort(function(a,b){return b.id-a.id}).map(function(t){return '<option value="'+t.id+'"'+(t.id===ui.qrTicket?' selected':'')+'>TD-'+t.id+': '+esc(t.title)+'</option>'}).join('');
+  main.innerHTML=
+  '<div class="head"><div><h1>QR-код</h1><p>Создайте QR-код заявки, чтобы распечатать его или переслать исполнителю. При сканировании телефон покажет карточку заявки.</p></div></div>'+
+  '<div class="grid2"><section class="panel">'+
+    '<p class="legend" id="src-l">Что закодировать</p>'+
+    '<div class="radio" role="radiogroup" aria-labelledby="src-l" style="margin-top:8px">'+
+      radio('ticket','Карточку заявки')+radio('url','Ссылку на сайт проекта')+radio('text','Свой текст')+
+    '</div>'+
+    '<div id="src-ticket" class="field"><label for="qt">Заявка</label>'+(opts?'<select id="qt">'+opts+'</select>':'<span class="hint">Заявок нет. Сначала создайте заявку.</span>')+'</div>'+
+    '<div id="src-url" class="field"><label for="qu">Ссылка</label><input type="url" id="qu" value="'+esc(ui.qrUrl)+'"><span class="hint">По умолчанию: сайт TaskDesk на Google Sites</span></div>'+
+    '<div id="src-text" class="field"><label for="qx">Текст</label><textarea id="qx" maxlength="600" placeholder="Любой текст до 500 символов">'+esc(ui.qrText)+'</textarea></div>'+
+    '<span class="err" id="qr-err" role="alert"></span>'+
+    '<p class="legend" style="margin:6px 0">Будет закодировано</p><pre class="payload" id="payload"></pre>'+
+    '<button class="btn" id="qr-go" style="margin-top:14px;width:100%">Сгенерировать QR-код</button>'+
+  '</section><section class="panel"><h2 style="margin-bottom:14px">Результат</h2><div class="qr-out" id="qr-out"></div></section></div>';
+  function sync(){
+    ['ticket','url','text'].forEach(function(s){$('#src-'+s).hidden=ui.qrSource!==s});
+    var p=qrPayload();$('#payload').textContent=p.text||'—';$('#qr-err').textContent='';qrStale();
+  }
+  main.querySelectorAll('input[name=src]').forEach(function(r){r.addEventListener('change',function(){ui.qrSource=r.value;sync()})});
+  var qt=$('#qt');if(qt)qt.addEventListener('change',function(){ui.qrTicket=+qt.value;sync()});
+  $('#qu').addEventListener('input',function(e){ui.qrUrl=e.target.value;sync()});
+  $('#qx').addEventListener('input',function(e){ui.qrText=e.target.value;sync()});
+  $('#qr-go').addEventListener('click',generate);
+  drawQr();sync();
+  /* Исправление: QR из карточки создаётся только после того, как экран QR уже построен */
+  if(ui.qrAuto){ui.qrAuto=false;generate()}
+}
+function radio(v,l){return '<label><input type="radio" name="src" value="'+v+'"'+(ui.qrSource===v?' checked':'')+'>'+l+'</label>'}
+function generate(){
+  var p=qrPayload(),err=$('#qr-err');
+  if(p.error){if(err)err.textContent=p.error;toast('QR-код не создан: '+p.error,true);return}
+  if(typeof qrcode==='undefined'){toast('Не загрузилась библиотека QR. Проверьте интернет и обновите страницу',true);return}
+  try{
+    var cv=makeQr(p.text,900);
+    ui.qrReady={canvas:cv,url:cv.toDataURL('image/png'),name:p.name+'.png',text:p.text,time:new Date()};
+    drawQr();toast('QR-код сгенерирован');var o=$('#qr-out');if(o&&o.scrollIntoView)o.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }catch(e){toast('Не удалось создать QR-код: текст слишком длинный',true)}
+}
+function drawQr(){
+  var out=$('#qr-out');if(!out)return;var q=ui.qrReady,b=$('#qr-go');
+  if(!q){out.innerHTML='<div class="qr-ph">QR-код появится здесь после нажатия кнопки «Сгенерировать QR-код»</div>';if(b)b.textContent='Сгенерировать QR-код';return}
+  if(b)b.textContent='Сгенерировать заново';
+  var t=q.time,hh=pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds());
+  out.innerHTML='<img src="'+q.url+'" alt="QR-код: '+esc(q.text.split('\n')[0])+'">'+
+    '<p style="font-weight:600">'+esc(q.text.split('\n')[0])+'</p><p class="note" style="margin:0">Создан в '+hh+'. Наведите камеру телефона, чтобы проверить.</p>'+
+    '<p class="warn" id="qr-stale" hidden>Данные изменились после создания этого QR-кода. Нажмите «Сгенерировать заново», чтобы код содержал актуальную информацию.</p>'+
+    '<button class="btn" data-act="qr-dl">Скачать PNG</button>';
+  qrStale();
+}
+/* Исправление: предупреждение, если QR-код устарел (статус, исполнитель или текст поменялись) */
+function qrStale(){var el=$('#qr-stale');if(!el)return;var p=qrPayload();el.hidden=!(ui.qrReady&&p.text&&ui.qrReady.text!==p.text)}
+
+/* ---------- скачивание файлов ---------- */
+var dl=null;
+if(window.claude&&typeof window.claude.use==='function'){window.claude.use('downloads').then(function(d){dl=d}).catch(function(){})}
+function saveBlob(blob,name,fallbackHint){
+  if(dl){
+    return dl.save({filename:name,data:blob}).then(function(){toast('Файл сохранён: '+name)})
+      .catch(function(e){toast(e&&e.code==='declined'?'Скачивание отменено':'Не получилось скачать. '+fallbackHint,true)});
+  }
+  try{var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+    toast('Файл '+name+' скачан')}
+  catch(e){toast('Не получилось скачать. '+fallbackHint,true)}
+  return Promise.resolve();
+}
+function downloadQr(){
+  var q=ui.qrReady;if(!q)return;
+  q.canvas.toBlob(function(blob){saveBlob(blob,q.name,'Зажмите QR-код и выберите «Сохранить изображение»')},'image/png');
+}
+
+function actDraft(t){
+  var a=state.acts[t.id];
+  if(!a){a={worker:t.assignee!=='Не назначен'?t.assignee:'',date:dayISO(),hours:'',work:'',materials:'',result:RESULTS[0],acceptor:t.author}}
+  return a;
+}
+function actErrors(t,a){
+  var h=parseFloat(String(a.hours).replace(',','.')),made=dayISO(t.created),today=dayISO();
+  return {
+    aw:!a.worker?'Выберите исполнителя':'',
+    ad:!a.date?'Укажите дату выполнения':a.date<made?'Дата не может быть раньше создания заявки ('+fmtDay(made)+')':a.date>today?'Дата не может быть в будущем':'',
+    ah:a.hours===''?'Укажите затраченное время':isNaN(h)||h<0.25||h>200?'Время должно быть числом от 0,25 до 200 часов':'',
+    ak:a.work.trim().length<10?'Опишите выполненные работы: минимум 10 символов':'',
+    ar:!a.result?'Выберите результат':'',
+    ac:a.acceptor.trim().length<2?'Укажите, кто принял работу':!NAME_RE.test(a.acceptor.trim())?'Имя может содержать только буквы, пробел, точку и дефис':''
+  };
+}
+function viewAct(){
+  if(!state.tickets.length){
+    main.innerHTML='<div class="head"><div><h1>Акт выполненных работ</h1></div></div><div class="empty">Заявок нет. Создайте заявку, чтобы сформировать по ней акт.<br><a class="btn" href="#new">Создать заявку</a></div>';return;
+  }
+  var sorted=state.tickets.slice().sort(function(a,b){return b.id-a.id});
+  if(ui.actTicket===null||!find(ui.actTicket)){var d=sorted.filter(function(t){return t.status==='done'})[0];ui.actTicket=(d||sorted[0]).id}
+  var t=find(ui.actTicket),a=actDraft(t);
+  var opts=sorted.map(function(x){return '<option value="'+x.id+'"'+(x.id===t.id?' selected':'')+'>TD-'+x.id+' ('+STATUS[x.status].toLowerCase()+'): '+esc(x.title)+'</option>'}).join('');
+  main.innerHTML=
+  '<div class="head"><div><h1>Акт выполненных работ</h1><p>Заполните форму: документ собирается справа в реальном времени. Проверьте предпросмотр и скачайте акт в PDF.</p></div></div>'+
+  '<div class="grid2"><form class="panel" id="af" novalidate>'+
+    field('at','Заявка','<select id="at">'+opts+'</select>')+
+    (t.status!=='done'?'<p class="warn" style="margin:-4px 0 14px">У заявки статус «'+STATUS[t.status]+'». Акт обычно составляют после выполнения, но сформировать его можно.</p>':'')+
+    '<div class="row2">'+
+    field('aw','Исполнитель','<select id="aw"><option value="">Выберите</option>'+PEOPLE.slice(1).map(function(p){return '<option>'+p+'</option>'}).join('')+'</select>')+
+    field('ad','Дата выполнения','<input type="date" id="ad" max="'+dayISO()+'" min="'+dayISO(t.created)+'">')+
+    field('ah','Затрачено, часов','<input type="number" id="ah" min="0.25" max="200" step="0.25" inputmode="decimal" placeholder="Например: 1,5">')+
+    field('ar','Результат','<select id="ar"><option value="">Выберите</option>'+RESULTS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select>')+
+    '</div>'+
+    field('ak','Выполненные работы','<textarea id="ak" maxlength="700" placeholder="Что именно сделано"></textarea>','От 10 символов')+
+    field('am','Использованные материалы','<input type="text" id="am" maxlength="150" placeholder="Например: кабель HDMI 2 м">','Необязательно')+
+    field('ac','Работу принял','<input type="text" id="ac" maxlength="40">','По умолчанию: автор заявки')+
+    '<div class="btns"><button class="btn" type="submit" id="pdf-go">Скачать PDF</button><button class="btn ghost" type="button" data-act="act-clear">Очистить форму</button></div>'+
+    '<p class="note">Черновик акта сохраняется автоматически и не пропадёт после обновления страницы.</p>'+
+  '</form><section class="panel"><h2 style="margin-bottom:12px">Предпросмотр</h2><div class="paper-wrap"><div class="paper" id="paper"></div></div></section></div>';
+  $('#aw').value=a.worker;$('#ad').value=a.date;$('#ah').value=a.hours;$('#ar').value=a.result;$('#ak').value=a.work;$('#am').value=a.materials;$('#ac').value=a.acceptor;
+  $('#at').addEventListener('change',function(e){ui.actTicket=+e.target.value;viewAct()});
+  var map={aw:'worker',ad:'date',ah:'hours',ar:'result',ak:'work',am:'materials',ac:'acceptor'};
+  Object.keys(map).forEach(function(k){
+    var el=$('#'+k);
+    el.addEventListener(el.tagName==='SELECT'||el.type==='date'?'change':'input',function(){
+      a[map[k]]=el.value;state.acts[t.id]=a;save();drawPaper(t,a);
+      if($('#w-'+k).classList.contains('bad')){var e={};e[k]=actErrors(t,a)[k];markErrors(e)}
+    });
+  });
+  $('#af').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(showErrors(actErrors(t,a))){toast('PDF не создан: исправьте отмеченные поля',true);return}
+    makePdf(t);
+  });
+  drawPaper(t,a);
+}
+function markErrors(errs){Object.keys(errs).forEach(function(k){var w=$('#w-'+k);if(w){w.classList.toggle('bad',!!errs[k]);$('#e-'+k).textContent=errs[k]}})}
+function val(s){s=String(s||'').trim();return s?'<span class="p-text">'+esc(s)+'</span>':'<span class="p-empty">не заполнено</span>'}
+function drawPaper(t,a){
+  var p=$('#paper');if(!p)return;
+  var qr='';try{if(typeof qrcode!=='undefined')qr='<div class="p-qr"><img src="'+makeQr(ticketPayload(t),240).toDataURL('image/png')+'" alt="QR-код заявки">заявка TD-'+t.id+'</div>'}catch(e){}
+  var h=parseFloat(String(a.hours).replace(',','.')),hours=isNaN(h)?'':String(h).replace('.',',')+' '+plural(Math.ceil(h),'час','часа','часов');
+  var now=new Date();
+  var row=function(k,v){return '<tr><th>'+k+'</th><td>'+v+'</td></tr>'};
+  p.innerHTML=
+    '<div class="p-head"><div><div class="p-logo">TaskDesk</div><div class="p-sub">Сервис технических заявок</div></div>'+qr+'</div>'+
+    '<div class="p-title">АКТ № А-'+t.id+'<br>о выполнении работ по заявке TD-'+t.id+'</div>'+
+    '<div class="p-date">'+(a.date?fmtDay(a.date):'дата не указана')+'</div>'+
+    '<table class="p-tab"><tbody>'+
+      row('Заявка','TD-'+t.id+' · '+esc(STATUS[t.status]))+row('Тема',esc(t.title))+row('Тип проблемы',esc(t.type))+
+      row('Приоритет',PRIOS[t.priority])+row('Заявитель',esc(t.author))+row('Дата создания заявки',fmtDate(t.created))+
+      row('Исполнитель',val(a.worker))+row('Дата выполнения',val(fmtDay(a.date)))+row('Затрачено времени',val(hours))+
+    '</tbody></table>'+
+    '<div class="p-h">Описание проблемы</div><div class="p-text">'+esc(t.desc)+'</div>'+
+    '<div class="p-h">Выполненные работы</div>'+val(a.work)+
+    '<div class="p-h">Использованные материалы</div>'+(String(a.materials||'').trim()?val(a.materials):'<span class="p-text">Не использовались</span>')+
+    '<div class="p-h">Результат</div>'+val(a.result)+
+    '<div class="p-sign"><div>Исполнитель<div class="p-line"></div>'+val(a.worker)+'</div><div>Работу принял<div class="p-line"></div>'+val(a.acceptor)+'</div></div>'+
+    '<div class="p-foot">Документ сформирован в TaskDesk '+fmtDate(now)+' в '+pad(now.getHours())+':'+pad(now.getMinutes())+'. Сканируйте QR-код, чтобы увидеть данные заявки.</div>';
+}
+function makePdf(t){
+  var btn=$('#pdf-go'),name='TaskDesk-akt-TD-'+t.id+'.pdf';
+  if(typeof html2pdf==='undefined'){toast('Не загрузилась библиотека PDF. Проверьте интернет и обновите страницу',true);return}
+  var clone=$('#paper').cloneNode(true);clone.removeAttribute('id');clone.classList.add('print');
+  btn.disabled=true;btn.textContent='Создаём PDF…';
+  var done=function(){btn.disabled=false;btn.textContent='Скачать PDF'};
+  html2pdf().set({margin:[10,10,10,10],filename:name,image:{type:'jpeg',quality:0.97},
+    html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css']}})
+    .from(clone).outputPdf('blob')
+    .then(function(blob){return saveBlob(blob,name,'Попробуйте открыть приложение в другом браузере')})
+    .then(done,function(){done();toast('Не удалось создать PDF',true)});
+}
+
+function viewFeedback(){
+  var rs=state.reviews,avg=rs.length?(rs.reduce(function(s,r){return s+r.rating},0)/rs.length).toFixed(1).replace('.',','):'—';
+  var stars='';for(var i=1;i<=5;i++)stars+='<button type="button" data-act="rate" data-v="'+i+'" aria-pressed="'+(ui.rating===i)+'" aria-label="Оценка '+i+' из 5">'+i+'</button>';
+  main.innerHTML=
+  '<div class="head"><div><h1>Отзывы</h1><p>Помогите сделать TaskDesk лучше. Имя и контакты не нужны.</p></div></div>'+
+  '<div class="grid2"><form class="panel" id="fb" novalidate>'+
+    '<div class="field" id="w-rating"><span class="legend" id="rl">Насколько удобен сервис?</span><div class="stars" id="rating" role="group" aria-labelledby="rl">'+stars+'</div><span class="hint">1 — неудобно, 5 — отлично</span><span class="err" id="e-rating"></span></div>'+
+    field('best','Какая функция самая полезная?','<select id="best"><option value="">Выберите функцию</option><option>Создание заявки</option><option>Статусы заявок</option><option>Поиск и фильтры</option><option>Аналитика</option><option>Акт в PDF</option><option>QR-код заявки</option></select>')+
+    field('text','Что стоит улучшить или добавить?','<textarea id="text" maxlength="400" placeholder="Напишите пару предложений"></textarea>','От 10 символов')+
+    '<button class="btn" type="submit">Отправить отзыв</button>'+
+    '<p class="note">Отзывы хранятся в этом браузере: это учебная версия без сервера.</p></form>'+
+  '<section class="panel"><h2>Средняя оценка: '+avg+'</h2><p class="note" style="margin:4px 0 8px">'+rs.length+' '+plural(rs.length,'отзыв','отзыва','отзывов')+'</p>'+
+    (rs.length?rs.slice().reverse().map(function(r){return '<div class="review"><span class="who">Оценка '+r.rating+' из 5</span> <span class="when">'+fmtDate(r.date)+', полезнее всего: '+esc(r.best.toLowerCase())+'</span><p>'+esc(r.text)+'</p></div>'}).join(''):'<p class="note">Отзывов пока нет. Оставьте первый.</p>')+
+  '</section></div>';
+  $('#fb').addEventListener('submit',function(e){
+    e.preventDefault();
+    var best=$('#best').value,text=$('#text').value.trim();
+    var errs={rating:!ui.rating?'Поставьте оценку от 1 до 5':'',best:!best?'Выберите функцию':'',text:text.length<10?'Напишите хотя бы 10 символов':''};
+    if(showErrors(errs)){toast('Отзыв не отправлен: исправьте отмеченные поля',true);return}
+    state.reviews.push({rating:ui.rating,best:best,text:text,date:new Date().toISOString()});
+    ui.rating=0;save();toast('Отзыв отправлен');viewFeedback();
+  });
+}
+
+
+function viewAbout(){
+  main.innerHTML=
+  '<div class="head"><div><h1>О проекте</h1></div></div>'+
+  '<div class="grid2"><section class="panel prose"><p class="lead">Регистрируйте технические заявки и отслеживайте статус выполнения в одном месте.</p>'+
+    '<p>TaskDesk — простой веб-сервис для приёма и отслеживания технических заявок внутри небольшой команды или учебной группы. Он рассчитан на студентов, небольшие студии и ИТ-отделы малого бизнеса, которым не нужна сложная система.</p>'+
+    '<h3 style="margin-top:16px">Проблема</h3><p>Заявки приходят в мессенджеры, почту и устно. Они теряются и дублируются, и никто не видит, кто отвечает за задачу и на каком она этапе.</p>'+
+    '<h3 style="margin-top:16px">Как работает TaskDesk</h3><ol><li>Пользователь заполняет короткую форму заявки.</li><li>Заявка попадает в общую очередь со статусом «Новая».</li><li>Исполнитель берёт её в работу, меняет статус до «Готово» и оформляет акт выполненных работ.</li></ol>'+
+    '<p style="margin-top:16px"><a class="btn ghost" href="'+SITE_URL+'" target="_blank" rel="noopener">Открыть сайт проекта на Google Sites</a></p></section>'+
+  '<section class="panel prose"><h2>Что умеет приложение</h2><ul>'+
+    '<li>Создание, редактирование и удаление заявок с проверкой полей</li><li>Смена статуса и назначение исполнителя</li>'+
+    '<li>Поиск при вводе, фильтры по статусу, типу и приоритету, сортировка по дате, срочности и теме</li>'+
+    '<li>Аналитика, которая пересчитывается сама</li><li>Акт выполненных работ с предпросмотром и скачиванием в PDF</li>'+
+    '<li>Отзывы с оценкой сервиса</li><li>QR-код заявки со скачиванием в PNG</li></ul>'+
+    '<h3 style="margin-top:18px">Демо-данные</h3><p class="note" style="margin-top:4px">Заявки, акты и отзывы сохраняются в этом браузере (localStorage). Кнопка ниже вернёт исходные примеры.</p>'+
+    '<p style="margin-top:12px"><button class="btn ghost" data-act="reset-data">'+(ui.confirmReset?'Точно сбросить все данные?':'Вернуть демо-данные')+'</button></p></section></div>';
+}
+
+main.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT')return;
+  var a=b.dataset.act,t=b.dataset.id?find(b.dataset.id):null;
+  if(a==='fstatus'){ui.status=b.dataset.v;drawList()}
+  /* Исправление: сброс возвращает все параметры, включая сортировку */
+  else if(a==='reset-filters'){Object.keys(DEF).forEach(function(k){ui[k]=DEF[k]});viewTickets();toast('Параметры поиска сброшены')}
+  else if(a==='status'&&t){if(t.status!==b.dataset.v){t.status=b.dataset.v;save();drawList();toast('TD-'+t.id+': статус «'+STATUS[t.status]+'»')}}
+  else if(a==='del'&&t){ui.confirmDel=t.id;drawList();setTimeout(function(){if(ui.confirmDel===t.id){ui.confirmDel=null;drawList()}},4000)}
+  else if(a==='del-yes'&&t){state.tickets=state.tickets.filter(function(x){return x.id!==t.id});delete state.acts[t.id];ui.confirmDel=null;save();drawList();toast('Заявка TD-'+t.id+' удалена')}
+  else if(a==='qr'&&t){ui.qrSource='ticket';ui.qrTicket=t.id;ui.qrReady=null;ui.qrAuto=true;go('qr')}
+  else if(a==='act'&&t){ui.actTicket=t.id;go('act')}
+  else if(a==='act-clear'){var x=find(ui.actTicket);if(x){delete state.acts[x.id];save();viewAct();toast('Форма акта очищена')}}
+  else if(a==='qr-dl'){downloadQr()}
+  else if(a==='rate'){ui.rating=+b.dataset.v;document.querySelectorAll('#rating button').forEach(function(x){x.setAttribute('aria-pressed',String(+x.dataset.v===ui.rating))})}
+  else if(a==='reset-data'){
+    if(!ui.confirmReset){ui.confirmReset=true;viewAbout();setTimeout(function(){if(ui.confirmReset){ui.confirmReset=false;if(current()==='about')viewAbout()}},4000)}
+    else{ui.confirmReset=false;state=seed();save();ui.qrReady=null;ui.qrTicket=null;ui.actTicket=null;viewAbout();toast('Демо-данные восстановлены')}
+  }
+});
+main.addEventListener('change',function(e){
+  var s=e.target;if(s.dataset.act!=='assign')return;
+  var t=find(s.dataset.id);if(!t)return;t.assignee=s.value;save();
+  toast('TD-'+t.id+': исполнитель '+(t.assignee==='Не назначен'?'снят':t.assignee));
+});
+render();
+})();
+</script>
+</body>
+</html>
